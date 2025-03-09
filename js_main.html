@@ -936,7 +936,7 @@
 				required: false
 			},
 			supplying_items: {
-				value: "",
+				value: [],  // Changed to array for multiple selections
 				valid: null,
 				error: null,
 				required: true
@@ -973,6 +973,15 @@
 
 	// Add showSupplierForm method
 	const showSupplierForm = function(item = null) {
+		// First load item list if not loaded
+		if (!this.itemList.length) {
+			google.script.run
+				.withSuccessHandler((items) => {
+					this.itemList = JSON.parse(items);
+				})
+				.getItemList();
+		}
+		
 		// First reset the dialog to ensure clean state
 		this.resetDialog({
 			active: true,
@@ -990,11 +999,8 @@
 			this.supplierForm.mobile_number.value = item.mobile_number;
 			this.supplierForm.whatsapp.value = item.whatsapp;
 			this.supplierForm.land_phone.value = item.land_phone;
-			this.supplierForm.supplying_items.value = item.supplying_items;
+			this.supplierForm.supplying_items.value = item.supplying_items ? item.supplying_items.split('|') : [];
 			this.supplierForm.uuid = item.uuid;
-		} else {
-			// Adding new supplier
-			this.supplierForm.title = "Add New Supplier";
 		}
 	};
 
@@ -1008,7 +1014,7 @@
 			mobile_number: this.supplierForm.mobile_number.value,
 			whatsapp: this.supplierForm.whatsapp.value,
 			land_phone: this.supplierForm.land_phone.value,
-			supplying_items: this.supplierForm.supplying_items.value
+			supplying_items: this.supplierForm.supplying_items.value.join('|')  // Join with pipe
 		};
 
 		google.script.run
@@ -1039,7 +1045,7 @@
 			mobile_number: this.supplierForm.mobile_number.value,
 			whatsapp: this.supplierForm.whatsapp.value,
 			land_phone: this.supplierForm.land_phone.value,
-			supplying_items: this.supplierForm.supplying_items.value
+			supplying_items: this.supplierForm.supplying_items.value.join('|')  // Join with pipe
 		};
 
 		google.script.run
@@ -1270,7 +1276,8 @@
 			labels: [],
 			icons: [],
 			keys: []
-		}
+		},
+		itemList: []
 	};
 
 	// get token from local storage

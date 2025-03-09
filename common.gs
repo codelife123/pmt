@@ -336,3 +336,8 @@ const updateSupplier = (item) => {
     app.updateItemByUuid(item, SN_SUPPLIER, DB_ID);
     return JSON.stringify(app.getItems(SN_SUPPLIER, DB_ID));
 };
+
+const getItemList = () => {
+    const app = new App();
+    return JSON.stringify(app.getItemList());
+};

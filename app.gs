@@ -9,6 +9,7 @@ const SN_LEAVE_REPO = "Leave Requests List"
 const SN_OKRS = "OKRs"
 const SN_LABOUR = "Labour"
 const SN_SUPPLIER = "Supplier"
+const SN_ITEM_LIST = "Items List"
 
 const TEMPLATE_ID_SALARY_CERTIFICATE = "1hX0DHy0T9H1ZjFUe-WGWO86upNFeM8Rca6bT63ezOVo"
 const FN_DOCUMENTS = "HR Documents"
@@ -266,6 +267,12 @@ class App {
         } catch (error) {
             throw new Error(`Failed to add labour record: ${error.message}`);
         }
+    }
+
+    getItemList() {
+        const ws = this.db.getSheetByName(SN_ITEM_LIST);
+        const values = ws.getRange(3, 1, ws.getLastRow()-2, 1).getValues();
+        return values.map(row => row[0]).filter(item => item); // Filter out empty values
     }
 }
 

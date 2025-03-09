@@ -25,7 +25,9 @@
                     <md-table-cell md-label="Mobile Number">{{ item.mobile_number }}</md-table-cell>
                     <md-table-cell md-label="WhatsApp">{{ item.whatsapp }}</md-table-cell>
                     <md-table-cell md-label="Land Phone">{{ item.land_phone }}</md-table-cell>
-                    <md-table-cell md-label="Supplying Items">{{ item.supplying_items }}</md-table-cell>
+                    <md-table-cell md-label="Supplying Items">
+                        {{ item.supplying_items ? item.supplying_items.split('|').join(', ') : '' }}
+                    </md-table-cell>
                     <md-table-cell md-label="Edit">
                         <md-button @click="showSupplierForm(item)" class="md-icon-button md-dense md-accent">
                             <md-icon>edit</md-icon>
@@ -96,16 +98,21 @@
                             <span class="md-error">{{supplierForm.land_phone.error}}</span>
                         </md-field>
 
-                        <md-field :class="supplierForm.supplying_items.valid === false ? 'md-invalid' : ''">
-                            <md-icon>inventory</md-icon>
-                            <label>Supplying Items</label>
-                            <md-textarea v-model="supplierForm.supplying_items.value" 
-                                       :required="supplierForm.supplying_items.required"
-                                       @input="validateSupplierField(supplierForm.supplying_items)"
-                                       @blur="validateSupplierField(supplierForm.supplying_items)"
-                                       md-autogrow></md-textarea>
-                            <span class="md-error">{{supplierForm.supplying_items.error}}</span>
-                        </md-field>
+                        <div class="md-field-container" :class="{'md-invalid': supplierForm.supplying_items.valid === false}">
+                            <label class="md-subheading">Supplying Items</label>
+                            <div class="md-layout md-gutter md-alignment-top-left">
+                                <div v-for="item in itemList" :key="item" class="md-layout-item md-size-50">
+                                    <md-checkbox v-model="supplierForm.supplying_items.value" 
+                                                :value="item"
+                                                @change="validateSupplierField(supplierForm.supplying_items)">
+                                        {{ item }}
+                                    </md-checkbox>
+                                </div>
+                            </div>
+                            <span class="md-error" v-if="supplierForm.supplying_items.error">
+                                {{supplierForm.supplying_items.error}}
+                            </span>
+                        </div>
 
                         <div>
                             <md-button type="submit" class="md-raised md-primary" :disabled="submitting || !supplierForm.valid">
@@ -123,4 +130,22 @@
             </md-dialog>
         </div>
     </template>
-</template> 
+</template>
+
+<style>
+.md-field-container {
+    margin: 16px 0;
+    padding-top: 16px;
+}
+.md-field-container.md-invalid .md-error {
+    display: block;
+    padding: 8px 0;
+    color: #ff1744;
+    font-size: 12px;
+}
+.md-subheading {
+    font-size: 16px;
+    margin-bottom: 16px;
+    color: rgba(0, 0, 0, 0.54);
+}
+</style> 
