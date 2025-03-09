@@ -753,25 +753,32 @@
 	const handleFileUpload = function(event, type) {
 		const file = event.target.files[0];
 		if (file) {
-			this.labourForm.files[type] = file;
+			// Store both the file object and its name
+			this.labourForm.files[type] = {
+				file: file,
+				name: file.name
+			};
 		}
 	};
 
 	const addNewLabour = function() {
 		this.submitting = true;
 		
-		const formData = new FormData();
-		formData.append('name', this.labourForm.name.value);
-		formData.append('mobile_number_1', this.labourForm.mobile_number_1.value);
-		formData.append('mobile_number_2', this.labourForm.mobile_number_2.value);
-		formData.append('nic', this.labourForm.nic.value);
-		formData.append('address', this.labourForm.address.value);
-		formData.append('salary', this.labourForm.salary.value);
-		formData.append('emergency_contact', this.labourForm.emergency_contact.value);
+		// Create a plain object with form data
+		const formData = {
+			name: this.labourForm.name.value,
+			mobile_number_1: this.labourForm.mobile_number_1.value,
+			mobile_number_2: this.labourForm.mobile_number_2.value,
+			nic: this.labourForm.nic.value,
+			address: this.labourForm.address.value,
+			salary: this.labourForm.salary.value,
+			emergency_contact: this.labourForm.emergency_contact.value
+		};
 		
+		// Add files if they exist
 		Object.keys(this.labourForm.files).forEach(key => {
-			if (this.labourForm.files[key]) {
-				formData.append(key, this.labourForm.files[key]);
+			if (this.labourForm.files[key] && this.labourForm.files[key].file) {
+				formData[key] = this.labourForm.files[key].file;
 			}
 		});
 
@@ -784,11 +791,46 @@
 				);
 				this.resetLabourForm();
 				this.dialog.active = false;
+				this.submitting = false;
 			})
 			.withFailureHandler((error) => {
 				this.showError(`<p class="red-text">${error.message}</p>`);
+				this.submitting = false;
 			})
-			.addNewLabour(formData);
+			.addNewLabour(JSON.stringify(formData));
+	};
+
+	const updateLabour = function(item) {
+		this.submitting = true;
+		google.script.run
+			.withSuccessHandler((labour) => {
+				labour = JSON.parse(labour);
+				this.labour = { ...labour };
+				this.showMessage(
+					`<p class="blue-text">Labour record has been updated successfully.</p>`
+				);
+				this.resetLabourForm();
+				this.dialog.active = false;
+				this.submitting = false;
+			})
+			.withFailureHandler((error) => {
+				this.showError(`<p class="red-text">${error.message}</p>`);
+				this.submitting = false;
+			})
+			.updateLabour(JSON.stringify(item));
+	};
+
+	const validateLabourField = function(field) {
+		field.valid = true;
+		if (field.required && !field.value) {
+			field.valid = false;
+			field.error = EMPTY_ERROR_MESSAGE;
+		}
+		
+		// Check if all required fields are valid
+		this.labourForm.valid = Object.keys(this.labourForm)
+			.filter(key => typeof this.labourForm[key] === 'object' && this.labourForm[key].required)
+			.every(key => this.labourForm[key].valid);
 	};
 
 	// Vue Methods object
@@ -817,7 +859,9 @@
 		resetLabourForm,
 		showLabourForm,
 		handleFileUpload,
-		addNewLabour
+		addNewLabour,
+		updateLabour,
+		validateLabourField
 	};
 
 	const menu = [

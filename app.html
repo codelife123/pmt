@@ -59,3 +59,63 @@
         </md-app>
     </div>
 </template>
+
+<style>
+.file-upload-section {
+    margin: 16px 0;
+}
+
+.file-input-container {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 8px;
+    background-color: #f5f5f5;
+}
+
+.file-input-container .md-field {
+    margin: 0;
+    padding-top: 0;
+    min-height: auto;
+}
+
+.file-input-container .md-field:before,
+.file-input-container .md-field:after {
+    display: none;
+}
+
+.file-input-container .md-field label {
+    top: 0;
+    color: rgba(0, 0, 0, 0.54);
+    font-size: 12px;
+}
+
+.selected-file {
+    display: block;
+    font-size: 12px;
+    color: rgba(0, 0, 0, 0.54);
+    margin-top: 4px;
+    word-break: break-all;
+}
+
+.md-file {
+    border: 2px dashed #ccc;
+    border-radius: 4px;
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.md-file:hover {
+    border-color: #2196f3;
+    background-color: rgba(33, 150, 243, 0.05);
+}
+
+.md-file input {
+    cursor: pointer;
+}
+
+.md-field.md-theme-default.md-focused .md-input {
+    -webkit-text-fill-color: rgba(0, 0, 0, 0.87);
+}
+</style>

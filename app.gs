@@ -230,37 +230,40 @@ class App {
     }
 
     addNewLabour(formData) {
-        const labourFolder = this.getFolderByName(LABOUR_FOLDER, this.rootFolder)
-        const labourName = formData.get('name')
-        const labourPersonalFolder = this.getFolderByName(labourName, labourFolder)
-        
-        const fileUrls = {}
-        
-        // Handle file uploads
-        ['gs', 'police', 'image', 'id_copy'].forEach(fileType => {
-            const file = formData.get(fileType)
-            if (file) {
-                const blob = file.getBlob()
-                const uploadedFile = labourPersonalFolder.createFile(blob)
-                fileUrls[`${fileType}_file`] = uploadedFile.getUrl()
-            }
-        })
+        try {
+            const labourFolder = this.getFolderByName(LABOUR_FOLDER, this.rootFolder);
+            const labourName = formData.name;
+            const labourPersonalFolder = this.getFolderByName(labourName, labourFolder);
+            
+            const fileUrls = {};
+            
+            // Handle file uploads
+            ['gs', 'police', 'image', 'id_copy'].forEach(fileType => {
+                if (formData[fileType]) {
+                    const blob = formData[fileType];
+                    const uploadedFile = labourPersonalFolder.createFile(blob);
+                    fileUrls[`${fileType}_file`] = uploadedFile.getUrl();
+                }
+            });
 
-        // Create labour record
-        const item = {
-            uuid: Utilities.getUuid(),
-            name: formData.get('name'),
-            mobile_number_1: formData.get('mobile_number_1'),
-            mobile_number_2: formData.get('mobile_number_2'),
-            nic: formData.get('nic'),
-            address: formData.get('address'),
-            salary: formData.get('salary'),
-            emergency_contact: formData.get('emergency_contact'),
-            ...fileUrls
+            // Create labour record
+            const item = {
+                uuid: Utilities.getUuid(),
+                name: formData.name,
+                mobile_number_1: formData.mobile_number_1,
+                mobile_number_2: formData.mobile_number_2,
+                nic: formData.nic,
+                address: formData.address,
+                salary: formData.salary,
+                emergency_contact: formData.emergency_contact,
+                ...fileUrls
+            };
+
+            this.createItem(item, SN_LABOUR, DB_ID);
+            return JSON.stringify(this.getItems(SN_LABOUR, DB_ID));
+        } catch (error) {
+            throw new Error(`Failed to add labour record: ${error.message}`);
         }
-
-        this.createItem(item, SN_LABOUR, DB_ID)
-        return JSON.stringify(this.getItems(SN_LABOUR, DB_ID))
     }
 }
 

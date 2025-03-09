@@ -284,3 +284,40 @@ const updateProfile = (item) => {
 }
 
 const downloadSalaryCertificate = email => new App().downloadSalaryCertificate(email)
+
+// Add after other API functions
+const addNewLabour = (item) => {
+    item = JSON.parse(item);
+    const app = new App();
+    const labourFolder = app.getFolderByName(LABOUR_FOLDER, app.rootFolder);
+    const labourName = item.name;
+    const labourPersonalFolder = app.getFolderByName(labourName, labourFolder);
+    
+    const fileUrls = {};
+    
+    // Handle file uploads
+    ['gs', 'police', 'image', 'id_copy'].forEach(fileType => {
+        if (item[fileType]) {
+            const blob = item[fileType];
+            const uploadedFile = labourPersonalFolder.createFile(blob);
+            fileUrls[`${fileType}_file`] = uploadedFile.getUrl();
+        }
+    });
+
+    // Create labour record with file URLs
+    const labourRecord = {
+        ...item,
+        ...fileUrls,
+        uuid: Utilities.getUuid()
+    };
+
+    app.createItem(labourRecord, SN_LABOUR, DB_ID);
+    return JSON.stringify(app.getItems(SN_LABOUR, DB_ID));
+};
+
+const updateLabour = (item) => {
+    item = JSON.parse(item);
+    const app = new App();
+    app.updateItemByUuid(item, SN_LABOUR, DB_ID);
+    return JSON.stringify(app.getItems(SN_LABOUR, DB_ID));
+};
