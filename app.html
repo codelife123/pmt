@@ -1,0 +1,61 @@
+<template>
+    <div class="page-container" class="md-scrollbar">
+        <md-app md-mode="fixed" md-waterfall>
+            <md-app-toolbar class="md-primary" md-elevation="0">
+                <md-button class="md-icon-button" @click="menuVisible = !menuVisible" v-if="!menuVisible">
+                    <md-icon>menu</md-icon>
+                </md-button>
+                <span class="md-title">{{loadingError ? "Loading Error" : menu.filter(item=>item.session ===
+                    session)[0].name }}</span>
+                <div class="md-toolbar-section-end" v-if="user">
+                    <md-button @click="goToSession('profile')">
+                        <md-icon>person</md-icon>
+                        <p>{{fullName}}</p>
+                        <md-tooltip>Your profile</md-tooltip>
+                    </md-button>
+                </div>
+            </md-app-toolbar>
+
+            <md-app-drawer :md-active.sync="menuVisible" md-persistent="full" md-swipeable>
+                <md-toolbar class="md-transparent" md-elevation="0">
+                    <span class="md-title">{{app.name}}</span>
+                    <div class="md-toolbar-section-end">
+                        <md-button class="md-icon-button md-dense" @click="menuVisible = !menuVisible">
+                            <md-icon>keyboard_arrow_left</md-icon>
+                        </md-button>
+                    </div>
+                </md-toolbar>
+
+                <md-list>
+                    <template v-for=" (item, i) in menu ">
+                        <md-list-item :key=" 'menu-' + i " v-if="user && !item.public"
+                                      @click=" goToSession(item.session) " :disabled=" session === item.session ">
+                            <md-icon>{{item.icon}}</md-icon>
+                            <span class="md-list-item-text">{{item.name}}</span>
+                        </md-list-item>
+
+                        <md-list-item :key=" 'menu-' + i " v-else-if="!user && item.public"
+                                      @click=" goToSession(item.session) " :disabled=" session === item.session ">
+                            <md-icon>{{item.icon}}</md-icon>
+                            <span class="md-list-item-text">{{item.name}}</span>
+                        </md-list-item>
+                    </template>
+                </md-list>
+            </md-app-drawer>
+
+            <md-app-content v-if="loadingError">
+                <div v-html="loadingError"></div>
+            </md-app-content>
+
+            <md-app-content v-else>
+                <?!= include("html/home") ?>
+                <?!= include("html/profile") ?>
+                <?!= include("html/leaves") ?>
+                <?!= include("html/okrs") ?>
+                <?!= include("html/documents") ?>
+                <?!= include("html/signin") ?>
+                <?!= include("html/signout") ?>
+            </md-app-content>
+        </md-app>
+    </div>
+</template>

@@ -1,0 +1,913 @@
+<script>
+	// Initialize Vue Material
+	Vue.use(VueMaterial.default);
+
+	// CONSTS
+	const EMPTY_ERROR_MESSAGE = "This is a required filed";
+	const KEY_TOKEN = "afei-hrapp";
+	const KEY_SESSION = "afei-session";
+	const PENDING = "Pending";
+	const APPROVED = "Accepted";
+	const REJECTED = "Rejected";
+	const DELETED = "Deleted";
+	const CANCELED = "Canceled";
+	const OPEN = "Open";
+	const CLOSED = "Closed";
+	const FINALISED = "Finalised";
+	const SESSIONS = ['home', 'documents', 'leaves', 'okrs', 'profile', 'signin', 'signout']
+
+	const WEEKENDS = [6, 0];
+	const createQuarters = function (n) {
+		const getQuarter = (month) => {
+			if (month < 3) return 1;
+			if (month < 6) return 2;
+			if (month < 9) return 3;
+			return 4;
+		};
+		const quarters = [];
+		const today = new Date();
+		while (n > 0) {
+			const quarter = getQuarter(today.getMonth());
+			const year = today.getFullYear();
+			quarters.push(`${year}Q${quarter}`);
+			today.setMonth(today.getMonth() + 3);
+			n--;
+		}
+		return quarters;
+	};
+
+	const goToSession = function (session = "home") {
+		if (session !== 'signin' && session !== 'signout') {
+			try {
+				localStorage.setItem(KEY_SESSION, session)
+			} catch {
+				//pass
+			}
+		}
+
+		this.session = session;
+		switch (session) {
+			case "leave":
+				this.resetLeaveForm();
+				break;
+		}
+	};
+
+	const resetSearch = function () {
+		const data = {
+			status: "",
+			quarters: [],
+		};
+		this.search = data;
+		return data;
+	};
+
+	const showError = function (error) {
+		this.submitting = false;
+		const data = {
+			active: true,
+			type: "alert",
+			title: "Error",
+			content: error,
+		};
+		this.resetDialog(data);
+	};
+
+	const showMessage = function (message) {
+		this.submitting = false;
+		const data = {
+			active: true,
+			type: "alert",
+			title: "Message",
+			content: message,
+		};
+		this.resetDialog(data);
+	};
+
+	const resetDialog = function (data = {}) {
+		this.dialog = data;
+		return data;
+	};
+
+	const resetSigninForm = function () {
+		const data = {
+			title: "Sign in",
+			valid: false,
+			items: [
+				{
+					label: "Email",
+					placeholder: "",
+					icon: "person",
+					valid: null,
+					value: "",
+					error: null,
+					required: true,
+					type: "text",
+				},
+				{
+					label: "Password",
+					placeholder: "",
+					icon: "lock_open",
+					valid: null,
+					value: "",
+					error: null,
+					required: true,
+					type: "password",
+				},
+			],
+			validate: function (item) {
+				item.valid = true;
+				if (item.value == "") {
+					item.valid = false;
+					item.error = EMPTY_ERROR_MESSAGE;
+				}
+
+				this.valid = true;
+				for (let i = 0; i < this.items.length; i++) {
+					if (!this.items[i].valid) {
+						this.valid = false;
+						break;
+					}
+				}
+			},
+		};
+		this.signinForm = data;
+		return data;
+	};
+
+	const signIn = function () {
+		this.submitting = true;
+		let [email, password] = this.signinForm.items;
+		email = email.value.trim().toLowerCase();
+		password = password.value.trim();
+		google.script.run
+			.withSuccessHandler((data) => {
+				const { user } = JSON.parse(data);
+				if (user) {
+					this.user = { ...user };
+					this.leaves = { ...user.leaves }
+					this.leaveSummary = { ...user.leaveSummary }
+					this.okrs = { ...user.okrs }
+					let session = "home"
+					try {
+						localStorage.setItem(KEY_TOKEN, user.token);
+						session = localStorage.getItem(KEY_SESSION)
+						if (!SESSIONS.includes(session)) session = "home"
+					} catch (e) {
+						// pass
+					}
+					this.goToSession(session);
+					this.resetSigninForm();
+					this.submitting = false;
+				} else {
+					// const data = {
+					//     active: true,
+					//     type: "alert",
+					//     title: "Sign in failed",
+					//     content: "Email or password is wrong.",
+					// };
+					// this.resetDialog(data);
+					this.showError(`<p class="red-text">Email or Password is wrong<\/p>`);
+				}
+
+			})
+			.withFailureHandler((error) => {
+				this.showError(`<p class="red-text">${error.message}<\/p>`);
+			})
+			.signIn(email, password);
+	};
+
+	const signOut = function () {
+		this.submitting = true;
+		google.script.run
+			.withSuccessHandler(() => {
+				clearInterval(this.refreshInterval);
+				this.goToSession("signin");
+				this.resetDialog();
+				this.user = null;
+				try {
+					localStorage.removeItem(KEY_TOKEN);
+					localStorage.removeItem(KEY_SESSION);
+				} catch (e) {
+					//pass
+				}
+				this.submitting = false;
+			})
+			.withFailureHandler((error) => {
+				this.showError(`<p class="red-text">${error.message}<\/p>`);
+			})
+			.signOut(this.user.token);
+	};
+
+
+	const showLeaveForm = function () {
+		this.resetLeaveForm();
+		this.resetDialog({
+			active: true,
+			type: "newLeave",
+		});
+	};
+
+	const resetLeaveForm = function () {
+		const data = {
+			title: "Apply new leave",
+			valid: false,
+			startDate: {
+				type: "date",
+				label: "From",
+				icon: "event",
+				value: null,
+				valid: null,
+				error: null,
+				required: true,
+			},
+			endDate: {
+				type: "date",
+				label: "To",
+				icon: "event",
+				value: null,
+				valid: null,
+				error: null,
+				required: true,
+			},
+			leaveType: {
+				type: "single",
+				label: "Leave type",
+				icon: "flight_takeoff",
+				value: "",
+				valid: null,
+				error: null,
+				required: true,
+			},
+			days: {
+				type: "text",
+				label: "Leaves chosen",
+				icon: "flight_takeoff",
+				value: null,
+				error: null,
+				required: true,
+				valid: null,
+			},
+			validate: (item) => {
+				let days = 0
+				let startDate;
+				if (this.leaveForm.startDate.value) startDate = new Date(this.leaveForm.startDate.value);
+				let endDate;
+				if (this.leaveForm.endDate.value) endDate = new Date(this.leaveForm.endDate.value);
+
+
+
+				item.valid = true;
+				if (!item.value) {
+					item.error = EMPTY_ERROR_MESSAGE;
+					item.valid = false;
+				} else {
+					if (startDate > endDate) {
+						if (item.label === "From") {
+							item.error = "From date is greater than To date";
+							item.valid = false;
+						}
+						if (item.label === "To") {
+							item.error = "To date is less than From Date";
+							item.valid = false;
+						}
+					}
+				}
+
+				if (startDate && endDate) {
+					let usedDaysInRange;
+					while (startDate <= endDate) {
+						if (!WEEKENDS.includes(startDate.getDay())) days++;
+						if (this.disabledDays.includes(startDate.getTime())) {
+							usedDaysInRange = true;
+							break;
+						}
+						startDate = new Date(
+							startDate.setDate(startDate.getDate() + 1)
+						);
+					}
+					if (usedDaysInRange) {
+						this.leaveForm.days.error =
+							"There is a leave in picked dates";
+						this.leaveForm.days.value = "n/a";
+						this.leaveForm.days.valid = false;
+					} else {
+						if (days) {
+							this.leaveForm.days.value = days;
+							this.leaveForm.startDate.valid = true;
+							this.leaveForm.endDate.valid = true;
+							if (days > this.user.leaveSummary.totalLeaveLeft) {
+								this.leaveForm.days.error =
+									"Days picked are over balance " + this.user.leaveSummary.totalLeaveLeft;
+								// not check picked days count
+								this.leaveForm.days.valid = true;
+							} else {
+								this.leaveForm.days.valid = true;
+							}
+						} else {
+							this.leaveForm.days.error =
+								"Used days in picked range";
+							this.leaveForm.days.value = "n/a";
+							this.leaveForm.days.valid = false;
+						}
+					}
+				} else {
+					this.leaveForm.days.error = "You picked invalid dates";
+					this.leaveForm.days.value = "n/a";
+					this.leaveForm.days.valid = false;
+				}
+				this.leaveForm.valid =
+					this.leaveForm.startDate.valid &&
+					this.leaveForm.endDate.valid &&
+					this.leaveForm.days.valid &&
+					this.leaveForm.leaveType.valid;
+			},
+		};
+		this.leaveForm = data;
+		return data;
+	};
+
+	const addDisabledDays = function (date) {
+		date = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+		let today = new Date();
+		today = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+		return (
+			// date < today ||
+			this.disabledDays.includes(date.getTime()) ||
+			WEEKENDS.includes(date.getDay()) ||
+			date.getFullYear() !== today.getFullYear()
+		);
+	};
+
+	const applyNewLeave = function () {
+		this.submitting = true;
+
+		const email = this.user.item.email;
+		const leaveType = this.leaveForm.leaveType.value;
+		const startDate = this.leaveForm.startDate.value;
+		const endDate = this.leaveForm.endDate.value;
+		const days = this.leaveForm.days.value;
+		const createdDate = new Date();
+		const status = PENDING;
+		const comments = "";
+		const fullName = [this.user.item.name, this.user.item.middleName, this.user.item.surName].filter(v => v !== "").join(" ")
+		const managers = [this.user.credential.item.managerEmail1, this.user.credential.item.managerEmail2].filter(v => v !== "").join(",")
+		const item = {
+			email,
+			startDate,
+			endDate,
+			days,
+			status,
+			comments,
+			createdDate,
+			leaveType,
+			fullName,
+			managers,
+		}
+
+		google.script.run
+			.withSuccessHandler((data) => {
+				const { leaves, leaveSummary } = JSON.parse(data);
+				this.user.leaveSummary = { ...leaveSummary };
+				this.user.leaves = { ...leaves };
+				this.leaves = { ...leaves };
+
+				this.showMessage(
+					`<p class="blue-text">Your new leave has been submitted successfully.<\/p>`
+				);
+				this.resetLeaveForm();
+			})
+			.withFailureHandler((error) => {
+				this.showError(`<p class="red-text">${error.message}<\/p>`);
+			})
+			.applyNewLeave(JSON.stringify(item));
+	};
+
+	const updateLeave = function (item, type) {
+		const data = {
+			type: "updateLeave",
+			updateType: type,
+			active: true,
+			title: type,
+			item: { ...item },
+			comments: {
+				label: "Comments",
+				icon: "comment",
+				value: "",
+				required: false,
+				error: EMPTY_ERROR_MESSAGE,
+				valid: null,
+			},
+			validate: function (item) {
+				item.valid = true;
+				if (item.value == "") item.valid = false;
+			},
+			callback: () => {
+				this.submitting = true;
+
+				let status;
+				if (type === "Approve") status = APPROVED;
+				if (type === "Reject") status = REJECTED;
+				if (type === "Delete") status = DELETED;
+				if (type === "Cancel") status = CANCELED;
+				let comments = item.comments;
+				if (this.dialog.comments.value) {
+					if (comments) {
+						comments = `${comments}\n${new Date().toLocaleDateString()}:${this.dialog.comments.value}`
+					} else {
+						comments = `${new Date().toLocaleDateString()}:${this.dialog.comments.value}`
+					}
+				}
+				const newItem = {
+					uuid: item.uuid,
+					email: item.email,
+					status: status,
+					comments,
+				};
+
+				google.script.run
+					.withSuccessHandler((data) => {
+						const { leaves, leaveSummary } = JSON.parse(data);
+						this.user.leaveSummary = { ...leaveSummary };
+						this.user.leaves = { ...leaves };
+						this.leaves = { ...leaves };
+						if (type === "Approve") this.showMessage(APPROVED);
+						if (type === "Reject") this.showMessage(REJECTED);
+						if (type === "Delete") this.showMessage(DELETED);
+						if (type === "Cancel") this.showMessage(CANCELED);
+						this.submitting = false;
+					})
+					.withFailureHandler((error) => {
+						this.showError(`<p class="red-text">${error.message}<\/p>`);
+					})
+					.updateLeave(JSON.stringify(newItem));
+			},
+		};
+		this.resetDialog(data);
+	};
+
+	const showOkrForm = function () {
+		this.resetOkrForm();
+		this.resetDialog({
+			active: true,
+			type: "newOkr",
+		});
+	};
+
+	const updateProfile = function () {
+		const item = { ...this.user.item }
+		item.passportDateOfIssue = new Date(item.passportDateOfIssue).toString() == "Invalid Date" ? null : new Date(item.passportDateOfIssue)
+		item.passportExpiryDate = new Date(item.passportExpiryDate).toString() == "Invalid Date" ? null : new Date(item.passportExpiryDate)
+		item.dateOfBirth = new Date(item.dateOfBirth).toString() == "Invalid Date" ? null : new Date(item.dateOfBirth)
+		const data = {
+			type: "updateProfile",
+			active: true,
+			title: "Edit Profile",
+			item,
+			callback: () => {
+				this.submitting = true;
+
+				const newItem = {
+					...this.dialog.item
+				};
+
+				google.script.run
+					.withSuccessHandler((user) => {
+						const { item } = JSON.parse(user);
+						this.user.item = item
+						this.showMessage("Your profile has been updated.");
+						this.submitting = false;
+					})
+					.withFailureHandler((error) => {
+						this.showError(`<p class="red-text">${error.message}<\/p>`);
+					})
+					.updateProfile(JSON.stringify(newItem));
+			},
+		};
+		this.resetDialog(data);
+	};
+
+	const resetOkrForm = function () {
+		const data = {
+			title: "Add new OKR",
+			valid: false,
+			objective: {
+				value: "",
+				valid: null,
+				error: null,
+				required: true,
+			},
+			keyResults: {
+				value: "",
+				valid: null,
+				error: null,
+				required: true,
+			},
+			quarter: {
+				value: null,
+				valid: null,
+				error: null,
+				required: true,
+				options: createQuarters(3),
+			},
+			dueDate: {
+				value: null,
+				valid: null,
+				error: null,
+				required: true,
+			},
+			status: {
+				options: [OPEN, CLOSED, FINALISED],
+			},
+		};
+		this.okrForm = data;
+		return data;
+	};
+
+	const addNewOkr = function () {
+		this.submitting = true;
+
+		const email = this.user.item.email;
+
+		const objective = this.okrForm.objective.value;
+		const keyResults = this.okrForm.keyResults.value;
+		const quarter = this.okrForm.quarter.value;
+		const dueDate = this.okrForm.dueDate.value;
+
+		const delivered = 0;
+		const timeTrack = 0;
+		const comments = "";
+		const status = OPEN;
+		const createdDate = new Date();
+
+		const item = {
+			email,
+			objective,
+			keyResults,
+			quarter,
+			dueDate,
+			delivered,
+			timeTrack,
+			comments,
+			status,
+			createdDate,
+		}
+		google.script.run
+			.withSuccessHandler((okrs) => {
+				okrs = JSON.parse(okrs);
+				this.user.okrs = { ...okrs };
+				this.okrs = { ...okrs }
+				this.showMessage(
+					`<p class="blue-text">Your new OKR has been submitted successfully.<\/p>`
+				);
+				this.resetOkrForm();
+			})
+			.withFailureHandler((error) => {
+				this.showError(`<p class="red-text">${error.message}<\/p>`);
+			})
+			.addNewOkr(JSON.stringify(item));
+	};
+
+	const updateOkr = function (item) {
+		item.dueDate = new Date(item.dueDate);
+		const data = {
+			type: "updateOkr",
+			active: true,
+			title: "Edit OKR",
+			item: { ...item },
+			comments: {
+				value: "",
+				required: false,
+				error: EMPTY_ERROR_MESSAGE,
+				valid: null,
+			},
+			callback: () => {
+				this.submitting = true;
+
+				let comments = item.comments;
+				if (this.dialog.comments.value) {
+					if (comments) {
+						comments = `${comments}\n${new Date().toLocaleDateString()}:${this.dialog.comments.value}`
+					} else {
+						comments = `${new Date().toLocaleDateString()}:${this.dialog.comments.value}`
+					}
+				}
+
+				const newItem = {
+					email: this.user.item.email,
+					uuid: item.uuid,
+					objective: this.dialog.item.objective,
+					quarter: this.dialog.item.quarter,
+					dueDate: this.dialog.item.dueDate,
+					delivered: this.dialog.item.delivered,
+					timeTrack: this.dialog.item.timeTrack,
+					status: this.dialog.item.status,
+					keyResults: this.dialog.item.keyResults,
+					comments,
+				};
+
+				google.script.run
+					.withSuccessHandler((okrs) => {
+						okrs = JSON.parse(okrs);
+						this.user.okrs = { ...okrs };
+						this.okrs = { ...okrs }
+						this.showMessage("OKR has been updated.");
+						this.submitting = false;
+					})
+					.withFailureHandler((error) => {
+						this.showError(`<p class="red-text">${error.message}<\/p>`);
+					})
+					.updateOkr(JSON.stringify(newItem));
+			},
+		};
+		this.resetDialog(data);
+	};
+
+	const searchOkrTable = function () {
+		if (this.search.quarters[0] === "") this.search.quarters.shift();
+		this.okrs.items = this.user.okrs.items.filter((okr) => {
+			const validStatus =
+				okr.status === this.search.status || this.search.status === "";
+			const validQuarter =
+				this.search.quarters.length === 0
+					? true
+					: this.search.quarters.includes(okr.quarter);
+
+			return validStatus && validQuarter;
+		});
+	};
+
+	const downloadSalaryCertificate = function () {
+		this.submitting = true;
+		google.script.run
+			.withSuccessHandler(() => {
+				this.showMessage(`<p>Salary certificate has been created, please check it in your Email inbox.<\/p>`);
+			})
+			.withFailureHandler((error) => {
+				this.showError(`<p class="red-text">${error.message}<\/p>`);
+			})
+			.downloadSalaryCertificate(this.user.item.email);
+	};
+
+	const getAppData = function () {
+		let token = null
+		let session = "home"
+		try {
+			token = localStorage.getItem(KEY_TOKEN);
+			session = localStorage.getItem(KEY_SESSION);
+			if (!SESSIONS.includes(session)) session = "home"
+		} catch (error) {
+			//pass
+		}
+		google.script.run
+			.withSuccessHandler((appData) => {
+				const { app, user } = JSON.parse(appData);
+				this.app = app
+				if (user) {
+					this.leaves = { ...user.leaves }
+					this.leaveSummary = { ...user.leaveSummary }
+					this.okrs = { ...user.okrs }
+					this.user = { ...user }
+				} else {
+					this.user = user
+					this.goToSession("signin")
+				}
+			})
+			.withFailureHandler((error) => {
+				this.loadingError = error.message;
+			})
+			.getAppData(token);
+	};
+
+	// Vue Methods object
+	const methods = {
+		goToSession,
+		showError,
+		showMessage,
+		resetDialog,
+		resetSearch,
+		resetSigninForm,
+		signIn,
+		signOut,
+		resetLeaveForm,
+		showLeaveForm,
+		applyNewLeave,
+		updateLeave,
+		resetOkrForm,
+		showOkrForm,
+		addNewOkr,
+		updateOkr,
+		searchOkrTable,
+		updateProfile,
+		addDisabledDays,
+		downloadSalaryCertificate,
+		getAppData,
+	};
+
+	const menu = [
+		{
+			name: "Home",
+			session: "home",
+			icon: "home",
+			public: false,
+		},
+		{
+			name: "Leaves",
+			session: "leaves",
+			icon: "flight_takeoff",
+			pubic: false,
+		},
+		{
+			name: "OKRs",
+			session: "okrs",
+			icon: "track_changes",
+			pubic: false,
+		},
+		{
+			name: "Documents",
+			session: "documents",
+			icon: "file_copy",
+			public: false,
+		},
+		{
+			name: "Profile",
+			session: "profile",
+			icon: "person",
+			public: false,
+		},
+		{
+			name: "Sign in",
+			session: "signin",
+			icon: "login",
+			public: true,
+		},
+		{
+			name: "Sign out",
+			session: "signout",
+			icon: "logout",
+			public: false,
+		},
+	];
+	// Vue Object Mounted
+
+	const mounted = function () {
+		if (!this.user) {
+			this.goToSession("signin");
+		}
+		this.refreshInterval = setInterval(() => {
+			this.getAppData();
+		}, this.refreshMinutes * 60 * 1000);
+	};
+
+	// Vue Object computed
+	const computed = {
+		pendingLeaves: function () {
+			return this.user.leaves.items.filter(
+				(leave) =>
+					leave.status === PENDING
+			);
+		},
+		pendingLeavesCount: function () {
+			let count = 0;
+			this.user.leaves.items.forEach((leave) => {
+				if (
+					leave.status === PENDING
+				) {
+					count += leave.days;
+				}
+			});
+			return count;
+		},
+		closedLeaves: function () {
+			return this.user.leaves.items.filter(
+				(leave) => leave.status !== PENDING
+			);
+		},
+		approvedLeaves: function () {
+			return this.user.leaves.items.filter(
+				(leave) => leave.status === APPROVED
+			);
+		},
+		approvedLeavesCount: function () {
+			let count = 0;
+			this.user.leaves.items.forEach((leave) => {
+				if (
+					leave.status === APPROVED
+				) {
+					count += leave.days;
+				}
+			});
+			return count;
+		},
+		pendingApprovals: function () {
+			return this.user.leaves.items.filter(
+				(leave) => leave.status === PENDING
+			);
+		},
+		closedApprovals: function () {
+			return this.user.leaves.items.filter(
+				(leave) => leave.status !== PENDING
+			);
+		},
+		disabledDays: function () {
+			const days = [];
+			this.pendingLeaves.forEach((leave) => {
+				let startDate = new Date(leave.startDate);
+				let endDate = new Date(leave.endDate);
+				while (startDate <= endDate) {
+					days.push(startDate.getTime());
+					startDate = new Date(
+						startDate.setDate(startDate.getDate() + 1)
+					);
+				}
+			});
+			this.approvedLeaves.forEach((leave) => {
+				let startDate = new Date(leave.startDate);
+				let endDate = new Date(leave.endDate);
+				while (startDate <= endDate) {
+					days.push(startDate.getTime());
+					startDate = new Date(
+						startDate.setDate(startDate.getDate() + 1)
+					);
+				}
+			});
+			return days;
+		},
+		okrQuarters: function () {
+			let quarters = this.okrs.items.map((okr) => okr.quarter);
+			quarters = [
+				...new Set([...quarters, ...this.okrForm.quarter.options]),
+			].sort();
+			return quarters;
+		},
+		fullName: function () {
+			return this.user ? [this.user.item.name, this.user.item.middleName, this.user.item.surName].filter(v => v).join(" ") : null
+		}
+	};
+
+	// Vue watch object
+	const watch = {};
+
+	// Vue Data object
+	const data = {
+		submitting: false,
+		loadingError: null,
+		menuVisible: false,
+		user: null,
+		session: "home",
+		search: resetSearch(),
+		menu,
+		refreshInterval: null,
+		refreshMinutes: 2,
+		dialog: resetDialog(),
+		signinForm: resetSigninForm(),
+		leaveForm: resetLeaveForm(),
+		leaves: [],
+		okrForm: resetOkrForm(),
+		okrs: [],
+	};
+
+	// get token from local storage
+
+	let token = null;
+	let session = "home";
+	try {
+		token = localStorage.getItem(KEY_TOKEN);
+		session = localStorage.getItem(KEY_SESSION)
+		if (!SESSIONS.includes(session)) session = "home";
+	} catch (error) {
+		// pass
+	}
+
+	// Vue Object
+	google.script.run
+		.withSuccessHandler((appData) => {
+			appData = JSON.parse(appData);
+			data.session = session;
+			data.app = appData.app;
+			data.user = appData.user;
+			if (data.user) {
+				data.leaves = appData.user.leaves;
+				data.okrs = appData.user.okrs;
+				data.leaveSummary = appData.user.leaveSummary;
+			} else {
+				data.session = "signin";
+			}
+			new Vue({
+				el: "#app",
+				data,
+				methods,
+				mounted,
+				computed,
+				watch,
+			});
+		})
+		.withFailureHandler((error) => {
+			data.loadingError = error.message;
+			new Vue({
+				el: "#app",
+				data,
+			});
+		})
+		.getAppData(token);
+</script>

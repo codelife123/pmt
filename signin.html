@@ -1,0 +1,41 @@
+<template v-if=" session === 'signin' ">
+	<div>
+		<form class="md-layout" @submit.prevent="signIn">
+			<div
+				class="md-layout-item md-size-40 md-small-size-50 md-xsmall-size-100"
+			>
+				<div class="md-title blue-text">{{signinForm.title}}</div>
+				<template v-for=" (item, i) in signinForm.items ">
+					<md-field
+						:key=" 'signin-form-item-' + i "
+						:class=" item.valid === false ? 'md-invalid' : '' "
+					>
+						<md-icon>{{item.icon}}</md-icon>
+						<label>{{item.label}}</label>
+						<md-input
+							:type="item.type"
+							:md-toggle-password=" item.type === 'password' "
+							:disabled="submitting"
+							:required="item.required"
+							v-model.trim="item.value"
+							@blur=" signinForm.validate(item) "
+							@keyup=" signinForm.validate(item) "
+						></md-input>
+						<span class="md-error">{{item.error}}</span>
+					</md-field>
+				</template>
+				<div>
+					<md-button
+						type="submit"
+						class="md-raised md-primary"
+						:disabled=" submitting || signinForm.valid === false "
+						>Sign in</md-button
+					>
+				</div>
+				<div v-if="submitting">
+					<md-progress-bar md-mode="indeterminate"></md-progress-bar>
+				</div>
+			</div>
+		</form>
+	</div>
+</template>

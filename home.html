@@ -1,0 +1,49 @@
+<template v-if=" session === 'home' && user ">
+    <div class="md-layout">
+        <!-- Employee Info -->
+        <div class="md-layout-item md-size-50 md-xsmall-size-100">
+            <div class="md-title blue-text">Profile Info</div>
+            <md-list class="md-double-line md-dense">
+                <md-list-item>
+                    <md-icon>person</md-icon>
+                    <div class="md-list-item-text">
+                        <span>{{ fullName}}</span>
+                        <span>Full Name</span>
+                    </div>
+                </md-list-item>
+                <template v-for="(key, i) in user.credential.keys">
+                    <md-list-item :key="key" v-if="['email', 'position', 'startDate'].includes(key)">
+                        <md-icon>{{ user.credential.icons[i] }}</md-icon>
+                        <div class="md-list-item-text">
+                            <span>{{ key.toLowerCase().indexOf("date") !== -1 ?
+                                new Date(user.credential.item[key]).toLocaleDateString() === "Invalid Date" ?
+                                "" : new Date(user.credential.item[key]).toLocaleDateString() :
+                                user.credential.item[key] }}</span>
+                            <span>{{ user.credential.labels[i] }}</span>
+                        </div>
+                    </md-list-item>
+                </template>
+            </md-list>
+        </div>
+
+        <div class="md-layout-item md-size-50 md-xsmall-size-100">
+            <div class="md-title blue-text">Your Leave Summary</div>
+            <md-list class="md-double-line md-dense">
+                <template v-for="(key, i) in user.leaveSummary.keys">
+                    <md-list-item :key="key"
+                                  v-if="['totalYearlyLeave', 'totalLeaveAccumulated', 'TotalLeaveUsed', 'totalLeaveLeft', 'totalParentalGranted', 'totalParentalUsed','totalParentalAvailable'].includes(key)">
+                        <md-icon>{{ user.leaveSummary.icons[i] }}</md-icon>
+                        <div class="md-list-item-text">
+                            <span>{{ key.toLowerCase().indexOf("date") !== -1 ?
+                                new Date(user.leaveSummary.item[key]).toLocaleDateString() === "Invalid Date" ?
+                                "" : new Date(user.leaveSummary.item[key]).toLocaleDateString() :
+                                user.leaveSummary.item[key]
+                                }}</span>
+                            <span>{{ user.leaveSummary.labels[i] }}</span>
+                        </div>
+                    </md-list-item>
+                </template>
+            </md-list>
+        </div>
+    </div>
+</template>

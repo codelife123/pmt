@@ -1,0 +1,9 @@
+<template v-if=" dialog.type === 'alert' ">
+    <div>
+        <md-dialog-alert
+                :md-active.sync="dialog.active"
+                :md-title="dialog.title"
+                :md-content="dialog.content"
+        />
+    </div>
+</template>
