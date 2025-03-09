@@ -7,11 +7,12 @@ const DB_ID = "1nsaWWreFGZwj6R2tpkCWzU-aOGYsGxwZJ3SSGbkaPY0"
 const SN_LEAVE_SUMMARY = "Unused Leave Days"
 const SN_LEAVE_REPO = "Leave Requests List"
 const SN_OKRS = "OKRs"
+const SN_LABOUR = "Labour"
+const SN_SUPPLIER = "Supplier"
 
 const TEMPLATE_ID_SALARY_CERTIFICATE = "1hX0DHy0T9H1ZjFUe-WGWO86upNFeM8Rca6bT63ezOVo"
 const FN_DOCUMENTS = "HR Documents"
 
-const SN_LABOUR = "Labour"
 const LABOUR_FOLDER = "Labour"
 
 class App {
@@ -104,6 +105,7 @@ class App {
         user.leaves = this.getItemsByEmail(email, SN_LEAVE_REPO, DB_ID)
         user.okrs = this.getItemsByEmail(email, SN_OKRS, DB_ID)
         user.labour = this.getItems(SN_LABOUR, DB_ID)
+        user.supplier = this.getItems(SN_SUPPLIER, DB_ID)
         return { app, user }
     }
 

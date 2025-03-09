@@ -14,7 +14,7 @@
 	const OPEN = "Open";
 	const CLOSED = "Closed";
 	const FINALISED = "Finalised";
-	const SESSIONS = ['home', 'leaves', 'okrs', 'profile', 'signin', 'signout', 'labour']
+	const SESSIONS = ['home', 'leaves', 'okrs', 'profile', 'signin', 'signout', 'labour', 'supplier']
 
 	const WEEKENDS = [6, 0];
 	const createQuarters = function (n) {
@@ -654,7 +654,7 @@
 		let session = "home"
 		try {
 			token = localStorage.getItem(KEY_TOKEN);
-			session = localStorage.getItem(KEY_SESSION);
+			session = localStorage.getItem(KEY_SESSION)
 			if (!SESSIONS.includes(session)) session = "home"
 		} catch (error) {
 			//pass
@@ -668,6 +668,7 @@
 					this.leaveSummary = { ...user.leaveSummary }
 					this.okrs = { ...user.okrs }
 					this.labour = { ...user.labour }
+					this.supplier = { ...user.supplier }
 					this.user = { ...user }
 				} else {
 					this.user = user
@@ -895,6 +896,170 @@
 		this.labourForm.valid = requiredFields.every(field => field.valid !== false);
 	};
 
+	// Add these constants at the top with other constants
+	const SN_SUPPLIER = "Supplier";
+
+	// Add resetSupplierForm method
+	const resetSupplierForm = function() {
+		const data = {
+			title: "Add New Supplier",
+			valid: false,
+			uuid: null,
+			supplier_name: {
+				value: "",
+				valid: null,
+				error: null,
+				required: true
+			},
+			business_name: {
+				value: "",
+				valid: null,
+				error: null,
+				required: true
+			},
+			mobile_number: {
+				value: "",
+				valid: null,
+				error: null,
+				required: true
+			},
+			whatsapp: {
+				value: "",
+				valid: null,
+				error: null,
+				required: false
+			},
+			land_phone: {
+				value: "",
+				valid: null,
+				error: null,
+				required: false
+			},
+			supplying_items: {
+				value: "",
+				valid: null,
+				error: null,
+				required: true
+			}
+		};
+		this.supplierForm = data;
+		return data;
+	};
+
+	// Add supplier form validation method
+	const validateSupplierField = function(field) {
+		// Only validate if the field has been interacted with
+		if (field.valid === null && !field.value) return;
+		
+		field.valid = true;
+		field.error = null;
+		
+		if (field.required && !field.value) {
+			field.valid = false;
+			field.error = EMPTY_ERROR_MESSAGE;
+		}
+		
+		// Update overall form validity
+		const requiredFields = [
+			this.supplierForm.supplier_name,
+			this.supplierForm.business_name,
+			this.supplierForm.mobile_number,
+			this.supplierForm.supplying_items
+		];
+		
+		// Form is valid if all required fields are valid (not false)
+		this.supplierForm.valid = requiredFields.every(field => field.valid !== false);
+	};
+
+	// Add showSupplierForm method
+	const showSupplierForm = function(item = null) {
+		// First reset the dialog to ensure clean state
+		this.resetDialog({
+			active: true,
+			type: item ? "updateSupplier" : "newSupplier"
+		});
+		
+		// Then reset the form
+		this.resetSupplierForm();
+		
+		if (item) {
+			// Edit existing supplier
+			this.supplierForm.title = "Edit Supplier";
+			this.supplierForm.supplier_name.value = item.supplier_name;
+			this.supplierForm.business_name.value = item.business_name;
+			this.supplierForm.mobile_number.value = item.mobile_number;
+			this.supplierForm.whatsapp.value = item.whatsapp;
+			this.supplierForm.land_phone.value = item.land_phone;
+			this.supplierForm.supplying_items.value = item.supplying_items;
+			this.supplierForm.uuid = item.uuid;
+		} else {
+			// Adding new supplier
+			this.supplierForm.title = "Add New Supplier";
+		}
+	};
+
+	// Add supplier CRUD methods
+	const addNewSupplier = function() {
+		this.submitting = true;
+		
+		const formData = {
+			supplier_name: this.supplierForm.supplier_name.value,
+			business_name: this.supplierForm.business_name.value,
+			mobile_number: this.supplierForm.mobile_number.value,
+			whatsapp: this.supplierForm.whatsapp.value,
+			land_phone: this.supplierForm.land_phone.value,
+			supplying_items: this.supplierForm.supplying_items.value
+		};
+
+		google.script.run
+			.withSuccessHandler((supplier) => {
+				supplier = JSON.parse(supplier);
+				this.supplier = { ...supplier };
+				this.showMessage(
+					`<p class="blue-text">New supplier record has been added successfully.</p>`
+				);
+				this.resetSupplierForm();
+				this.dialog.active = false;
+				this.submitting = false;
+			})
+			.withFailureHandler((error) => {
+				this.showError(`<p class="red-text">${error.message}</p>`);
+				this.submitting = false;
+			})
+			.addNewSupplier(JSON.stringify(formData));
+	};
+
+	const updateSupplier = function() {
+		this.submitting = true;
+		
+		const formData = {
+			uuid: this.supplierForm.uuid,
+			supplier_name: this.supplierForm.supplier_name.value,
+			business_name: this.supplierForm.business_name.value,
+			mobile_number: this.supplierForm.mobile_number.value,
+			whatsapp: this.supplierForm.whatsapp.value,
+			land_phone: this.supplierForm.land_phone.value,
+			supplying_items: this.supplierForm.supplying_items.value
+		};
+
+		google.script.run
+			.withSuccessHandler((supplier) => {
+				supplier = JSON.parse(supplier);
+				this.supplier = { ...supplier };
+				this.showMessage(
+					`<p class="blue-text">Supplier record has been updated successfully.</p>`
+				);
+				this.resetSupplierForm();
+				this.dialog.active = false;
+				this.submitting = false;
+			})
+			.withFailureHandler((error) => {
+				this.showError(`<p class="red-text">${error.message}</p>`);
+				this.submitting = false;
+			})
+			.updateSupplier(JSON.stringify(formData));
+	};
+
 	// Vue Methods object
 	const methods = {
 		goToSession,
@@ -923,7 +1088,12 @@
 		handleFileUpload,
 		addNewLabour,
 		updateLabour,
-		validateLabourField
+		validateLabourField,
+		resetSupplierForm,
+		validateSupplierField,
+		showSupplierForm,
+		addNewSupplier,
+		updateSupplier
 	};
 
 	const menu = [
@@ -975,6 +1145,12 @@
 			icon: "engineering",
 			public: false
 		},
+		{
+			name: "Supplier",
+			session: "supplier",
+			icon: "store",
+			public: false
+		}
 	];
 	// Vue Object Mounted
 
@@ -1099,6 +1275,13 @@
 			labels: [],
 			icons: [],
 			keys: []
+		},
+		supplierForm: resetSupplierForm(),
+		supplier: {
+			items: [],
+			labels: [],
+			icons: [],
+			keys: []
 		}
 	};
 
@@ -1127,6 +1310,7 @@
 				data.okrs = appData.user.okrs;
 				data.leaveSummary = appData.user.leaveSummary;
 				data.labour = appData.user.labour;
+				data.supplier = appData.user.supplier;
 			} else {
 				data.session = "signin";
 			}

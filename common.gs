@@ -321,3 +321,18 @@ const updateLabour = (item) => {
     app.updateItemByUuid(item, SN_LABOUR, DB_ID);
     return JSON.stringify(app.getItems(SN_LABOUR, DB_ID));
 };
+
+const addNewSupplier = (item) => {
+    item = JSON.parse(item);
+    const app = new App();
+    item.uuid = Utilities.getUuid(); // Add UUID for new supplier
+    app.createItem(item, SN_SUPPLIER, DB_ID);
+    return JSON.stringify(app.getItems(SN_SUPPLIER, DB_ID));
+};
+
+const updateSupplier = (item) => {
+    item = JSON.parse(item);
+    const app = new App();
+    app.updateItemByUuid(item, SN_SUPPLIER, DB_ID);
+    return JSON.stringify(app.getItems(SN_SUPPLIER, DB_ID));
+};
