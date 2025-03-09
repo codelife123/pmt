@@ -1,8 +1,9 @@
-const DB_ID_CREDENTIALS = "1FzPFnnyVCDBs1SjKzlSH0gDmrF7suIW3YYF7aP80nKs"
-const SN_CREDENTIALS = "Password_Login_Financials"
-const SN_EMPLOYEE_PROFILE = "Employee Profile"
+const DB_ID_CREDENTIALS = "1nsaWWreFGZwj6R2tpkCWzU-aOGYsGxwZJ3SSGbkaPY0"
+const SN_CREDENTIALS = "User"
+const SN_EMPLOYEE_PROFILE = "User"
+const PROJECT_ROOT_FOLDER_ID = '1KP9xa7H6F-WCfm4ACRAON2SdoQCtnoHx'
 
-const DB_ID = "1tnwGYlo0ucynxGTS9uzQfixn98B3ici-_jKoT6oPjmw"
+const DB_ID = "1nsaWWreFGZwj6R2tpkCWzU-aOGYsGxwZJ3SSGbkaPY0"
 const SN_LEAVE_SUMMARY = "Unused Leave Days"
 const SN_LEAVE_REPO = "Leave Requests List"
 const SN_OKRS = "OKRs"
@@ -14,8 +15,7 @@ class App {
     constructor() {
         this.db = SpreadsheetApp.openById(DB_ID)
         this.dbCredentials = SpreadsheetApp.openById(DB_ID_CREDENTIALS)
-        this.templateSalaryCertificate = DriveApp.getFileById(TEMPLATE_ID_SALARY_CERTIFICATE)
-        this.rootFolder = this.templateSalaryCertificate.getParents().next()
+        this.rootFolder = DriveApp.getFolderById(PROJECT_ROOT_FOLDER_ID)
     }
 
     getKeysIconsLabelsValues(ws) {
@@ -178,40 +178,7 @@ class App {
         const findItem = values
     }
 
-    downloadSalaryCertificate(email) {
-        const credential = this.getItemByEmail(email, SN_CREDENTIALS, DB_ID_CREDENTIALS).item
-        const user = this.getUserByEmail(email).item
-        // const folder = this.getFolderByName(FN_DOCUMENTS, this.rootFolder)
-        const copyFile = this.templateSalaryCertificate.makeCopy(this.rootFolder)
 
-        const copyDoc = DocumentApp.openById(copyFile.getId())
-        const body = copyDoc.getBody()
-        const userName = [user.name, user.middleName, user.surName].filter(v => v != "").join(" ")
-
-        const filename = `Salary Certificate - ${userName}`
-
-        const placeholders = {
-            today: Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy"),
-            title: user.title,
-            userName,
-            passportNumber: user.passportNumber,
-            startDate: Utilities.formatDate(new Date(credential.startDate), Session.getScriptTimeZone(), "dd/MM/yyyy"),
-            position: credential.position,
-            salaryTotal: credential.salaryTotal,
-        }
-        Object.keys(placeholders).forEach(key => {
-            if (placeholders[key] != null) body.replaceText(`{{${key}}}`, placeholders[key])
-        })
-
-        copyDoc.saveAndClose()
-
-        const blob = copyDoc.getAs(MimeType.PDF).setName(filename)
-        // const pdf = folder.createFile(blob)
-        copyFile.setTrashed(true)
-        GmailApp.sendEmail(email, filename, "", { htmlBody: `<p>Dear ${userName},</p><p>Please find attached the salary certificate.</p>`, attachments: [blob], name: 'Salary Certificate' })
-
-        // return { name: pdf.getName(), url: pdf.getUrl() }
-    }
 
     sendApprovalEmail(item){
       const fullName = item.fullName

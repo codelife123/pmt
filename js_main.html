@@ -14,7 +14,7 @@
 	const OPEN = "Open";
 	const CLOSED = "Closed";
 	const FINALISED = "Finalised";
-	const SESSIONS = ['home', 'documents', 'leaves', 'okrs', 'profile', 'signin', 'signout']
+	const SESSIONS = ['home', 'leaves', 'okrs', 'profile', 'signin', 'signout']
 
 	const WEEKENDS = [6, 0];
 	const createQuarters = function (n) {
@@ -882,6 +882,7 @@
 	// Vue Object
 	google.script.run
 		.withSuccessHandler((appData) => {
+			console.log('withSuccessHandler called >>>>')
 			appData = JSON.parse(appData);
 			data.session = session;
 			data.app = appData.app;
@@ -903,6 +904,7 @@
 			});
 		})
 		.withFailureHandler((error) => {
+			console.log('withFailureHandler called >>>>'+error.message)
 			data.loadingError = error.message;
 			new Vue({
 				el: "#app",
