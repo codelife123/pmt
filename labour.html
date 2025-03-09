@@ -44,7 +44,7 @@
                         </md-button>
                     </md-table-cell>
                     <md-table-cell md-label="Edit">
-                        <md-button @click="updateLabour(item)" class="md-icon-button md-dense md-accent">
+                        <md-button @click="showLabourForm(item)" class="md-icon-button md-dense md-accent">
                             <md-icon>edit</md-icon>
                         </md-button>
                     </md-table-cell>
@@ -59,12 +59,13 @@
         <md-dialog :md-active.sync="dialog.active" :md-click-outside-to-close="false">
             <md-dialog-title class="blue-text">{{ labourForm.title }}</md-dialog-title>
             <md-dialog-content>
-                <form @submit.prevent="dialog.type === 'newLabour' ? addNewLabour() : updateLabourRecord()">
+                <form @submit.prevent="dialog.type === 'newLabour' ? addNewLabour() : updateLabour()">
                     <md-field :class="labourForm.name.valid === false ? 'md-invalid' : ''">
                         <md-icon>person</md-icon>
                         <label>Name</label>
                         <md-input v-model="labourForm.name.value" 
                                  :required="labourForm.name.required"
+                                 @input="validateLabourField(labourForm.name)"
                                  @blur="validateLabourField(labourForm.name)"></md-input>
                         <span class="md-error">{{labourForm.name.error}}</span>
                     </md-field>
@@ -136,6 +137,12 @@
                                 </md-field>
                                 <span class="selected-file" v-if="labourForm.files.gs">
                                     {{ labourForm.files.gs.name }}
+                                </span>
+                                <span v-else-if="labourForm.existingFiles.gs_file">
+                                    <md-button class="md-icon-button" @click="downloadFile(labourForm.existingFiles.gs_file)">
+                                        <md-icon>description</md-icon>
+                                        <md-tooltip>View existing GS Document</md-tooltip>
+                                    </md-button>
                                 </span>
                             </div>
                         </div>

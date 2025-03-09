@@ -689,6 +689,8 @@
 		const data = {
 			title: "Add New Labour",
 			valid: false,
+			uuid: null,
+			existingFiles: {},
 			name: {
 				value: "",
 				valid: null,
@@ -742,11 +744,40 @@
 		return data;
 	};
 
-	const showLabourForm = function() {
+	const showLabourForm = function(item = null) {
 		this.resetLabourForm();
+		
+		if (item) {
+			// Edit existing labour
+			this.labourForm.title = "Edit Labour";
+			this.labourForm.name.value = item.name;
+			this.labourForm.mobile_number_1.value = item.mobile_number_1;
+			this.labourForm.mobile_number_2.value = item.mobile_number_2;
+			this.labourForm.nic.value = item.nic;
+			this.labourForm.address.value = item.address;
+			this.labourForm.salary.value = item.salary;
+			this.labourForm.emergency_contact.value = item.emergency_contact;
+			this.labourForm.uuid = item.uuid;
+			
+			// Store existing file URLs
+			this.labourForm.existingFiles = {
+				gs_file: item.gs_file,
+				police_file: item.police_file,
+				image_file: item.image_file,
+				id_copy_file: item.id_copy_file
+			};
+
+			// Validate all fields
+			Object.keys(this.labourForm).forEach(key => {
+				if (this.labourForm[key] && typeof this.labourForm[key] === 'object' && 'valid' in this.labourForm[key]) {
+					this.validateLabourField(this.labourForm[key]);
+				}
+			});
+		}
+		
 		this.resetDialog({
 			active: true,
-			type: "newLabour"
+			type: item ? "updateLabour" : "newLabour"
 		});
 	};
 
@@ -800,8 +831,30 @@
 			.addNewLabour(JSON.stringify(formData));
 	};
 
-	const updateLabour = function(item) {
+	const updateLabour = function() {
 		this.submitting = true;
+		
+		// Create update object with form data
+		const formData = {
+			uuid: this.labourForm.uuid,
+			name: this.labourForm.name.value,
+			mobile_number_1: this.labourForm.mobile_number_1.value,
+			mobile_number_2: this.labourForm.mobile_number_2.value,
+			nic: this.labourForm.nic.value,
+			address: this.labourForm.address.value,
+			salary: this.labourForm.salary.value,
+			emergency_contact: this.labourForm.emergency_contact.value,
+			// Include existing file URLs
+			...this.labourForm.existingFiles
+		};
+		
+		// Add new files if they exist
+		Object.keys(this.labourForm.files).forEach(key => {
+			if (this.labourForm.files[key] && this.labourForm.files[key].file) {
+				formData[key] = this.labourForm.files[key].file;
+			}
+		});
+
 		google.script.run
 			.withSuccessHandler((labour) => {
 				labour = JSON.parse(labour);
@@ -817,20 +870,29 @@
 				this.showError(`<p class="red-text">${error.message}</p>`);
 				this.submitting = false;
 			})
-			.updateLabour(JSON.stringify(item));
+			.updateLabour(JSON.stringify(formData));
 	};
 
 	const validateLabourField = function(field) {
 		field.valid = true;
+		field.error = null;
+		
 		if (field.required && !field.value) {
 			field.valid = false;
 			field.error = EMPTY_ERROR_MESSAGE;
 		}
 		
-		// Check if all required fields are valid
-		this.labourForm.valid = Object.keys(this.labourForm)
-			.filter(key => typeof this.labourForm[key] === 'object' && this.labourForm[key].required)
-			.every(key => this.labourForm[key].valid);
+		// Update overall form validity
+		const requiredFields = [
+			this.labourForm.name,
+			this.labourForm.mobile_number_1,
+			this.labourForm.nic,
+			this.labourForm.address,
+			this.labourForm.salary,
+			this.labourForm.emergency_contact
+		];
+		
+		this.labourForm.valid = requiredFields.every(field => field.valid !== false);
 	};
 
 	// Vue Methods object
