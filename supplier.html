@@ -1,0 +1,126 @@
+<template v-if="session === 'supplier' && user">
+    <div class="md-layout">
+        <div class="md-layout-item md-size-100" style="position: relative">
+            <div class="md-title blue-text">
+                Supplier Records
+                <md-chip :class="(supplier && supplier.items && supplier.items.length) ? 'md-primary' : 'md-accent'">
+                    {{supplier && supplier.items ? supplier.items.length : 0}}
+                </md-chip>
+            </div>
+            <md-button class="md-fab md-mini md-primary md-fab-top-right"
+                       @click="showSupplierForm()">
+                <md-icon>add</md-icon>
+                <md-tooltip md-direction="left">Add new Supplier</md-tooltip>
+            </md-button>
+
+            <md-table v-model="supplier.items" md-sort="supplier_name" md-sort-order="asc" v-if="supplier && supplier.items">
+                <md-table-empty-state md-label="No Supplier records found"
+                                     md-description="Create a new supplier record.">
+                    <md-button class="md-primary md-raised" @click="showSupplierForm()">Add New Supplier</md-button>
+                </md-table-empty-state>
+
+                <md-table-row slot="md-table-row" slot-scope="{ item }">
+                    <md-table-cell md-label="Supplier Name" md-sort-by="supplier_name">{{ item.supplier_name }}</md-table-cell>
+                    <md-table-cell md-label="Business Name" md-sort-by="business_name">{{ item.business_name }}</md-table-cell>
+                    <md-table-cell md-label="Mobile Number">{{ item.mobile_number }}</md-table-cell>
+                    <md-table-cell md-label="WhatsApp">{{ item.whatsapp }}</md-table-cell>
+                    <md-table-cell md-label="Land Phone">{{ item.land_phone }}</md-table-cell>
+                    <md-table-cell md-label="Supplying Items">{{ item.supplying_items }}</md-table-cell>
+                    <md-table-cell md-label="Edit">
+                        <md-button @click="showSupplierForm(item)" class="md-icon-button md-dense md-accent">
+                            <md-icon>edit</md-icon>
+                        </md-button>
+                    </md-table-cell>
+                </md-table-row>
+            </md-table>
+        </div>
+    </div>
+
+    <template v-if="dialog.type === 'newSupplier' || dialog.type === 'updateSupplier'">
+        <div>
+            <md-dialog :md-active.sync="dialog.active" :md-click-outside-to-close="false">
+                <md-dialog-title class="blue-text">
+                    {{ dialog.type === 'newSupplier' ? 'Add New Supplier' : 'Edit Supplier' }}
+                </md-dialog-title>
+                <md-dialog-content>
+                    <form @submit.prevent="dialog.type === 'newSupplier' ? addNewSupplier() : updateSupplier()">
+                        <md-field :class="{'md-invalid': supplierForm.supplier_name.valid === false}">
+                            <md-icon>person</md-icon>
+                            <label>Supplier Name</label>
+                            <md-input v-model="supplierForm.supplier_name.value" 
+                                     :required="supplierForm.supplier_name.required"
+                                     @input="validateSupplierField(supplierForm.supplier_name)"
+                                     @blur="validateSupplierField(supplierForm.supplier_name)"></md-input>
+                            <span class="md-error" v-if="supplierForm.supplier_name.error">
+                                {{supplierForm.supplier_name.error}}
+                            </span>
+                        </md-field>
+
+                        <md-field :class="supplierForm.business_name.valid === false ? 'md-invalid' : ''">
+                            <md-icon>store</md-icon>
+                            <label>Business Name</label>
+                            <md-input v-model="supplierForm.business_name.value" 
+                                     :required="supplierForm.business_name.required"
+                                     @input="validateSupplierField(supplierForm.business_name)"
+                                     @blur="validateSupplierField(supplierForm.business_name)"></md-input>
+                            <span class="md-error">{{supplierForm.business_name.error}}</span>
+                        </md-field>
+
+                        <md-field :class="supplierForm.mobile_number.valid === false ? 'md-invalid' : ''">
+                            <md-icon>call</md-icon>
+                            <label>Mobile Number</label>
+                            <md-input v-model="supplierForm.mobile_number.value" 
+                                     :required="supplierForm.mobile_number.required"
+                                     @input="validateSupplierField(supplierForm.mobile_number)"
+                                     @blur="validateSupplierField(supplierForm.mobile_number)"></md-input>
+                            <span class="md-error">{{supplierForm.mobile_number.error}}</span>
+                        </md-field>
+
+                        <md-field :class="supplierForm.whatsapp.valid === false ? 'md-invalid' : ''">
+                            <md-icon>chat</md-icon>
+                            <label>WhatsApp</label>
+                            <md-input v-model="supplierForm.whatsapp.value" 
+                                     :required="supplierForm.whatsapp.required"
+                                     @input="validateSupplierField(supplierForm.whatsapp)"
+                                     @blur="validateSupplierField(supplierForm.whatsapp)"></md-input>
+                            <span class="md-error">{{supplierForm.whatsapp.error}}</span>
+                        </md-field>
+
+                        <md-field :class="supplierForm.land_phone.valid === false ? 'md-invalid' : ''">
+                            <md-icon>phone</md-icon>
+                            <label>Land Phone</label>
+                            <md-input v-model="supplierForm.land_phone.value" 
+                                     :required="supplierForm.land_phone.required"
+                                     @input="validateSupplierField(supplierForm.land_phone)"
+                                     @blur="validateSupplierField(supplierForm.land_phone)"></md-input>
+                            <span class="md-error">{{supplierForm.land_phone.error}}</span>
+                        </md-field>
+
+                        <md-field :class="supplierForm.supplying_items.valid === false ? 'md-invalid' : ''">
+                            <md-icon>inventory</md-icon>
+                            <label>Supplying Items</label>
+                            <md-textarea v-model="supplierForm.supplying_items.value" 
+                                       :required="supplierForm.supplying_items.required"
+                                       @input="validateSupplierField(supplierForm.supplying_items)"
+                                       @blur="validateSupplierField(supplierForm.supplying_items)"
+                                       md-autogrow></md-textarea>
+                            <span class="md-error">{{supplierForm.supplying_items.error}}</span>
+                        </md-field>
+
+                        <div>
+                            <md-button type="submit" class="md-raised md-primary" :disabled="submitting || !supplierForm.valid">
+                                Submit
+                            </md-button>
+                            <md-button @click="dialog.active = false" class="md-raised" :disabled="submitting">
+                                Close
+                            </md-button>
+                            <div v-if="submitting">
+                                <md-progress-bar md-mode="indeterminate"></md-progress-bar>
+                            </div>
+                        </div>
+                    </form>
+                </md-dialog-content>
+            </md-dialog>
+        </div>
+    </template>
+</template> 
