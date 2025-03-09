@@ -11,6 +11,9 @@ const SN_OKRS = "OKRs"
 const TEMPLATE_ID_SALARY_CERTIFICATE = "1hX0DHy0T9H1ZjFUe-WGWO86upNFeM8Rca6bT63ezOVo"
 const FN_DOCUMENTS = "HR Documents"
 
+const SN_LABOUR = "Labour"
+const LABOUR_FOLDER = "Labour"
+
 class App {
     constructor() {
         this.db = SpreadsheetApp.openById(DB_ID)
@@ -100,6 +103,7 @@ class App {
         user.leaveSummary = this.getItemByEmail(email, SN_LEAVE_SUMMARY, DB_ID)
         user.leaves = this.getItemsByEmail(email, SN_LEAVE_REPO, DB_ID)
         user.okrs = this.getItemsByEmail(email, SN_OKRS, DB_ID)
+        user.labour = this.getItems(SN_LABOUR, DB_ID)
         return { app, user }
     }
 
@@ -178,8 +182,6 @@ class App {
         const findItem = values
     }
 
-
-
     sendApprovalEmail(item){
       const fullName = item.fullName
       const startDate = new Date(item.startDate).toLocaleDateString()
@@ -225,6 +227,40 @@ class App {
 
     signOut(token) {
         destroyToken(token)
+    }
+
+    addNewLabour(formData) {
+        const labourFolder = this.getFolderByName(LABOUR_FOLDER, this.rootFolder)
+        const labourName = formData.get('name')
+        const labourPersonalFolder = this.getFolderByName(labourName, labourFolder)
+        
+        const fileUrls = {}
+        
+        // Handle file uploads
+        ['gs', 'police', 'image', 'id_copy'].forEach(fileType => {
+            const file = formData.get(fileType)
+            if (file) {
+                const blob = file.getBlob()
+                const uploadedFile = labourPersonalFolder.createFile(blob)
+                fileUrls[`${fileType}_file`] = uploadedFile.getUrl()
+            }
+        })
+
+        // Create labour record
+        const item = {
+            uuid: Utilities.getUuid(),
+            name: formData.get('name'),
+            mobile_number_1: formData.get('mobile_number_1'),
+            mobile_number_2: formData.get('mobile_number_2'),
+            nic: formData.get('nic'),
+            address: formData.get('address'),
+            salary: formData.get('salary'),
+            emergency_contact: formData.get('emergency_contact'),
+            ...fileUrls
+        }
+
+        this.createItem(item, SN_LABOUR, DB_ID)
+        return JSON.stringify(this.getItems(SN_LABOUR, DB_ID))
     }
 }
 

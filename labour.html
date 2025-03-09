@@ -1,0 +1,41 @@
+<template v-if="session === 'labour' && user">
+    <div class="md-layout">
+        <div class="md-layout-item md-size-100" style="position: relative">
+            <div class="md-title blue-text">
+                Labour Records
+                <md-chip :class="(labour && labour.items && labour.items.length) ? 'md-primary' : 'md-accent'">
+                    {{labour && labour.items ? labour.items.length : 0}}
+                </md-chip>
+            </div>
+            <md-button class="md-fab md-mini md-primary md-fab-top-right"
+                       @click="showLabourForm">
+                <md-icon>add</md-icon>
+                <md-tooltip md-direction="left">Add new Labour</md-tooltip>
+            </md-button>
+
+            <md-table v-model="labour.items" md-sort="name" md-sort-order="asc" v-if="labour && labour.items">
+                <md-table-empty-state md-label="No Labour records found"
+                                     md-description="Create a new labour record.">
+                    <md-button class="md-primary md-raised" @click="showLabourForm">Add New Labour</md-button>
+                </md-table-empty-state>
+
+                <md-table-row slot="md-table-row" slot-scope="{ item }">
+                    <!-- ... rest of the table row content ... -->
+                </md-table-row>
+            </md-table>
+        </div>
+    </div>
+</template>
+
+<template v-if="dialog.type === 'newLabour' || dialog.type === 'updateLabour'">
+    <div>
+        <md-dialog :md-active.sync="dialog.active" :md-click-outside-to-close="false">
+            <md-dialog-title class="blue-text">{{ labourForm.title }}</md-dialog-title>
+            <md-dialog-content>
+                <form @submit.prevent="dialog.type === 'newLabour' ? addNewLabour() : updateLabourRecord()">
+                    <!-- Rest of the form remains same -->
+                </form>
+            </md-dialog-content>
+        </md-dialog>
+    </div>
+</template> 

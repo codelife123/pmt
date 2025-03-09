@@ -14,7 +14,7 @@
 	const OPEN = "Open";
 	const CLOSED = "Closed";
 	const FINALISED = "Finalised";
-	const SESSIONS = ['home', 'leaves', 'okrs', 'profile', 'signin', 'signout']
+	const SESSIONS = ['home', 'leaves', 'okrs', 'profile', 'signin', 'signout', 'labour']
 
 	const WEEKENDS = [6, 0];
 	const createQuarters = function (n) {
@@ -667,6 +667,7 @@
 					this.leaves = { ...user.leaves }
 					this.leaveSummary = { ...user.leaveSummary }
 					this.okrs = { ...user.okrs }
+					this.labour = { ...user.labour }
 					this.user = { ...user }
 				} else {
 					this.user = user
@@ -677,6 +678,117 @@
 				this.loadingError = error.message;
 			})
 			.getAppData(token);
+	};
+
+	// Add these constants
+	const SN_LABOUR = "Labour";
+	const LABOUR_FOLDER = "Labour";
+
+	// Add these methods
+	const resetLabourForm = function() {
+		const data = {
+			title: "Add New Labour",
+			valid: false,
+			name: {
+				value: "",
+				valid: null,
+				error: null,
+				required: true
+			},
+			mobile_number_1: {
+				value: "",
+				valid: null,
+				error: null,
+				required: true
+			},
+			mobile_number_2: {
+				value: "",
+				valid: null,
+				error: null,
+				required: false
+			},
+			nic: {
+				value: "",
+				valid: null,
+				error: null,
+				required: true
+			},
+			address: {
+				value: "",
+				valid: null,
+				error: null,
+				required: true
+			},
+			salary: {
+				value: "",
+				valid: null,
+				error: null,
+				required: true
+			},
+			emergency_contact: {
+				value: "",
+				valid: null,
+				error: null,
+				required: true
+			},
+			files: {
+				gs: null,
+				police: null,
+				image: null,
+				id_copy: null
+			}
+		};
+		this.labourForm = data;
+		return data;
+	};
+
+	const showLabourForm = function() {
+		this.resetLabourForm();
+		this.resetDialog({
+			active: true,
+			type: "newLabour"
+		});
+	};
+
+	const handleFileUpload = function(event, type) {
+		const file = event.target.files[0];
+		if (file) {
+			this.labourForm.files[type] = file;
+		}
+	};
+
+	const addNewLabour = function() {
+		this.submitting = true;
+		
+		const formData = new FormData();
+		formData.append('name', this.labourForm.name.value);
+		formData.append('mobile_number_1', this.labourForm.mobile_number_1.value);
+		formData.append('mobile_number_2', this.labourForm.mobile_number_2.value);
+		formData.append('nic', this.labourForm.nic.value);
+		formData.append('address', this.labourForm.address.value);
+		formData.append('salary', this.labourForm.salary.value);
+		formData.append('emergency_contact', this.labourForm.emergency_contact.value);
+		
+		Object.keys(this.labourForm.files).forEach(key => {
+			if (this.labourForm.files[key]) {
+				formData.append(key, this.labourForm.files[key]);
+			}
+		});
+
+		google.script.run
+			.withSuccessHandler((labour) => {
+				labour = JSON.parse(labour);
+				this.labour = { ...labour };
+				this.showMessage(
+					`<p class="blue-text">New labour record has been added successfully.</p>`
+				);
+				this.resetLabourForm();
+				this.dialog.active = false;
+			})
+			.withFailureHandler((error) => {
+				this.showError(`<p class="red-text">${error.message}</p>`);
+			})
+			.addNewLabour(formData);
 	};
 
 	// Vue Methods object
@@ -702,6 +814,10 @@
 		addDisabledDays,
 		downloadSalaryCertificate,
 		getAppData,
+		resetLabourForm,
+		showLabourForm,
+		handleFileUpload,
+		addNewLabour
 	};
 
 	const menu = [
@@ -746,6 +862,12 @@
 			session: "signout",
 			icon: "logout",
 			public: false,
+		},
+		{
+			name: "Labour",
+			session: "labour",
+			icon: "engineering",
+			public: false
 		},
 	];
 	// Vue Object Mounted
@@ -865,6 +987,13 @@
 		leaves: [],
 		okrForm: resetOkrForm(),
 		okrs: [],
+		labourForm: resetLabourForm(),
+		labour: {
+			items: [],
+			labels: [],
+			icons: [],
+			keys: []
+		}
 	};
 
 	// get token from local storage
@@ -891,6 +1020,7 @@
 				data.leaves = appData.user.leaves;
 				data.okrs = appData.user.okrs;
 				data.leaveSummary = appData.user.leaveSummary;
+				data.labour = appData.user.labour;
 			} else {
 				data.session = "signin";
 			}
