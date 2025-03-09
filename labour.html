@@ -8,7 +8,7 @@
                 </md-chip>
             </div>
             <md-button class="md-fab md-mini md-primary md-fab-top-right"
-                       @click="showLabourForm">
+                       @click="showLabourForm()">
                 <md-icon>add</md-icon>
                 <md-tooltip md-direction="left">Add new Labour</md-tooltip>
             </md-button>
@@ -16,7 +16,7 @@
             <md-table v-model="labour.items" md-sort="name" md-sort-order="asc" v-if="labour && labour.items">
                 <md-table-empty-state md-label="No Labour records found"
                                      md-description="Create a new labour record.">
-                    <md-button class="md-primary md-raised" @click="showLabourForm">Add New Labour</md-button>
+                    <md-button class="md-primary md-raised" @click="showLabourForm()">Add New Labour</md-button>
                 </md-table-empty-state>
 
                 <md-table-row slot="md-table-row" slot-scope="{ item }">
